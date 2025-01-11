@@ -1,0 +1,107 @@
+package com.google.Mavenproject;
+package com.example.backend;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import jakarta.persistence.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+
+@SpringBootApplication
+public class BackendApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(BackendApplication.class, args);
+    }
+}
+
+// User Entity
+@Entity
+class User {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    private String username;
+    private String password;
+
+    // Getters and Setters
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+    public String getUsername() { return username; }
+    public void setUsername(String username) { this.username = username; }
+    public String getPassword() { return password; }
+    public void setPassword(String password) { this.password = password; }
+}
+
+// User Repository
+interface UserRepository extends JpaRepository<User, Long> {
+    Optional<User> findByUsername(String username);
+}
+
+// User Service
+@Service
+class UserService {
+    @Autowired
+    private UserRepository userRepository;
+
+    public Optional<User> login(String username, String password) {
+        return userRepository.findByUsername(username)
+                .filter(user -> user.getPassword().equals(password));
+    }
+
+    public User register(String username, String password) {
+        User user = new User();
+        user.setUsername(username);
+        user.setPassword(password);
+        return userRepository.save(user);
+    }
+}
+
+// User Controller
+@RestController
+@RequestMapping("/api")
+class UserController {
+
+    @Autowired
+    private UserService userService;
+
+    // Login Endpoint
+    @PostMapping("/login")
+    public Map<String, String> login(@RequestBody Map<String, String> request) {
+        String username = request.get("username");
+        String password = request.get("password");
+
+        boolean success = userService.login(username, password).isPresent();
+        Map<String, String> response = new HashMap<>();
+        response.put("message", success ? "Login successful" : "Invalid credentials");
+        return response;
+    }
+
+    // Register Endpoint
+    @PostMapping("/register")
+    public Map<String, String> register(@RequestBody Map<String, String> request) {
+        String username = request.get("username");
+        String password = request.get("password");
+
+        User user = userService.register(username, password);
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "User registered successfully with ID: " + user.getId());
+        return response;
+    }
+
+    // Mood Analysis Endpoint
+    @GetMapping("/analyze")
+    public Map<String, String> analyzeMood(@RequestParam String mood) {
+        // Placeholder for Worqhat API integration
+        Map<String, String> response = new HashMap<>();
+        response.put("emotion", mood);
+        response.put("suggestion", "Try deep breathing exercises to relax.");
+        return response;
+    }
+}
+
